@@ -1,10 +1,6 @@
 --[[
-    Hasession Hub - Final Polish V2
-    - Исправлено вертикальное положение текста (теперь не прижат вверх)
-    - Добавлены отступы Padding для всех элементов
-    - Блюр синхронизирован со сворачиванием
-    - Анимации и Drag работают стабильно
-]]
+    Hasession Hub - Alpha
+    - Kto chitaet eto, tot krasava
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
