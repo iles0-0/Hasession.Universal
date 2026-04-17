@@ -1,8 +1,4 @@
---[[
-    Hasession Hub - Alpha
-    + Settings с Dark/Light темой
-    + Кнопки с затемнёнными краями (градиент)
-]]
+--[[Hasession Hub - Alpha
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
@@ -64,7 +60,7 @@ Logo.Size = UDim2.new(0, 120, 1, 0)
 Logo.BackgroundTransparency = 1
 Logo.Font = Enum.Font.GothamBold
 Logo.RichText = true
-Logo.Text = 'Hasession'
+Logo.Text = '<font color="rgb(0, 200, 255)">H</font>asession'
 Logo.TextColor3 = Color3.new(1, 1, 1)
 Logo.TextSize = 16
 Logo.TextXAlignment = 0
@@ -123,9 +119,9 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     blur.Enabled = not isMinimized
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
+CloseBtn.MouseButton1Click:Connect(function() 
     blur:Destroy()
-    Gui:Destroy()
+    Gui:Destroy() 
 end)
 
 -- ==================== САЙДБАР ====================
@@ -146,24 +142,9 @@ Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 local cLayout = Instance.new("UIListLayout", Content)
 cLayout.Padding = UDim.new(0, 8)
 
+-- Фикс: Общий отступ для всего списка кнопок
 local cPadding = Instance.new("UIPadding", Content)
-cPadding.PaddingTop = UDim.new(0, 5)
-
--- ==================== ФУНКЦИЯ ГРАДИЕНТА ДЛЯ КНОПОК ====================
-local function addEdgeGradient(button)
-    local gradient = Instance.new("UIGradient", button)
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
-    })
-    gradient.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0.8),
-        NumberSequenceKeypoint.new(0.5, 0),
-        NumberSequenceKeypoint.new(1, 0.8)
-    })
-    return gradient
-end
+cPadding.PaddingTop = UDim.new(0, 5) 
 
 -- ==================== ВКЛАДКИ ====================
 local Tabs = {}
@@ -184,9 +165,6 @@ local function CreateTab(name, active)
     btn.TextSize = 12
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 17)
     
-    -- Затемнённые края
-    addEdgeGradient(btn)
-    
     local stroke = Instance.new("UIStroke", btn)
     stroke.Color = AccentColor
     stroke.Thickness = 1.4
@@ -206,25 +184,23 @@ local function CreateTab(name, active)
     return tabFrame
 end
 
--- ==================== ТОГГЛЫ ====================
+-- ==================== ТОГГЛЫ (ФИКС ВЫРАВНИВАНИЯ) ====================
 local function AddToggle(tab, title, desc, callback)
     local card = Instance.new("TextButton", tab)
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 52) -- Чуть увеличили высоту для баланса
     card.BackgroundColor3 = Color3.fromRGB(30, 36, 45)
     card.Text = ""
     card.AutoButtonColor = false
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-    
-    -- Затемнённые края для карточки
-    addEdgeGradient(card)
 
+    -- Контейнер для текста с отступами (Центрирует текст по вертикали)
     local textContainer = Instance.new("Frame", card)
     textContainer.Size = UDim2.new(1, -50, 1, 0)
     textContainer.BackgroundTransparency = 1
     
     local tPadding = Instance.new("UIPadding", textContainer)
     tPadding.PaddingLeft = UDim.new(0, 15)
-    tPadding.PaddingTop = UDim.new(0, 10)
+    tPadding.PaddingTop = UDim.new(0, 10) -- Фикс: Опускает текст Fly ниже
 
     local t = Instance.new("TextLabel", textContainer)
     t.Size = UDim2.new(1, 0, 0, 15)
@@ -250,9 +226,6 @@ local function AddToggle(tab, title, desc, callback)
     sw.Size = UDim2.fromOffset(28, 16)
     sw.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
     Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
-    
-    -- Затемнённые края для тоггла
-    addEdgeGradient(sw)
 
     local dot = Instance.new("Frame", sw)
     dot.Position = UDim2.fromOffset(2, 2)
@@ -269,175 +242,16 @@ local function AddToggle(tab, title, desc, callback)
     end)
 end
 
--- ==================== ВКЛАДКИ ====================
+-- Вкладки
 local home = CreateTab("Home", true)
 CreateTab("Executor", false)
 CreateTab("Hubs", false)
-local settingsTab = CreateTab("Settings", false)
 
--- ==================== HOME ====================
-AddToggle(home, "Fly", "Ability to fly around map", function(v) Settings.Fly = v end)
+-- Функции
+AddToggle(home, "Fly", "Abilty to fly around map", function(v) Settings.Fly = v end)
 AddToggle(home, "Noclip", "Walk through objects", function(v) Settings.Noclip = v end)
 AddToggle(home, "Inf Jump", "Jump in the air", function(v) Settings.InfJump = v end)
 
--- ==================== SETTINGS - ТЕМЫ ====================
-local Themes = {
-    Dark = {
-        MainBg = Color3.fromRGB(18, 22, 28),
-        CardBg = Color3.fromRGB(30, 36, 45),
-        SidebarBtnBg = Color3.fromRGB(25, 29, 36),
-        SidebarBtnActive = Color3.fromRGB(40, 50, 65),
-        TextColor = Color3.new(1, 1, 1),
-        TextSecondary = Color3.fromRGB(160, 160, 160),
-        ToggleBg = Color3.fromRGB(55, 55, 55),
-        ShadowTransparency = 0.6,
-        BlurSize = 10
-    },
-    Light = {
-        MainBg = Color3.fromRGB(245, 245, 250),
-        CardBg = Color3.fromRGB(255, 255, 255),
-        SidebarBtnBg = Color3.fromRGB(230, 230, 235),
-        SidebarBtnActive = Color3.fromRGB(200, 230, 255),
-        TextColor = Color3.new(0, 0, 0),
-        TextSecondary = Color3.fromRGB(80, 80, 80),
-        ToggleBg = Color3.fromRGB(200, 200, 200),
-        ShadowTransparency = 0.3,
-        BlurSize = 5
-    }
-}
-
-local CurrentTheme = "Dark"
-local ThemeFile = "hasession_theme.json"
-
-local function LoadTheme()
-    local success, data = pcall(function() return readfile(ThemeFile) end)
-    if success and data then CurrentTheme = data end
-end
-
-local function SaveTheme(theme)
-    pcall(function() writefile(ThemeFile, theme) end)
-end
-
-local function ApplyTheme(theme)
-    local t = Themes[theme]
-    if not t then return end
-    
-    TS:Create(Main, TweenInfo.new(0.3), {BackgroundColor3 = t.MainBg}):Play()
-    
-    for _, tab in pairs(Tabs) do
-        for _, card in pairs(tab.F:GetChildren()) do
-            if card:IsA("TextButton") and card.Name == "" then
-                TS:Create(card, TweenInfo.new(0.3), {BackgroundColor3 = t.CardBg}):Play()
-                for _, label in pairs(card:GetDescendants()) do
-                    if label:IsA("TextLabel") then
-                        if label.TextSize == 13 then
-                            TS:Create(label, TweenInfo.new(0.3), {TextColor3 = t.TextColor}):Play()
-                        elseif label.TextSize == 9 then
-                            TS:Create(label, TweenInfo.new(0.3), {TextColor3 = t.TextSecondary}):Play()
-                        end
-                    end
-                end
-                for _, toggle in pairs(card:GetDescendants()) do
-                    if toggle:IsA("Frame") and toggle.Size == UDim2.fromOffset(28, 16) then
-                        TS:Create(toggle, TweenInfo.new(0.3), {BackgroundColor3 = t.ToggleBg}):Play()
-                    end
-                end
-            end
-        end
-    end
-    
-    for _, data in pairs(Tabs) do
-        TS:Create(data.B, TweenInfo.new(0.3), {
-            BackgroundColor3 = data.B.BackgroundColor3 == Color3.fromRGB(40, 50, 65) and t.SidebarBtnActive or t.SidebarBtnBg,
-            TextColor3 = t.TextColor
-        }):Play()
-    end
-    
-    TS:Create(Logo, TweenInfo.new(0.3), {TextColor3 = t.TextColor}):Play()
-    TS:Create(AlphaTag, TweenInfo.new(0.3), {TextColor3 = AccentColor}):Play()
-    TS:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = t.ShadowTransparency}):Play()
-    
-    blur.Size = t.BlurSize
-    CurrentTheme = theme
-    SaveTheme(theme)
-end
-
-LoadTheme()
-
--- ==================== ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ ====================
-local themeCard = Instance.new("TextButton", settingsTab)
-themeCard.Size = UDim2.new(1, 0, 0, 52)
-themeCard.BackgroundColor3 = Themes[CurrentTheme].CardBg
-themeCard.Text = ""
-themeCard.AutoButtonColor = false
-Instance.new("UICorner", themeCard).CornerRadius = UDim.new(0, 10)
-addEdgeGradient(themeCard)
-
-local themeTextContainer = Instance.new("Frame", themeCard)
-themeTextContainer.Size = UDim2.new(1, -90, 1, 0)
-themeTextContainer.BackgroundTransparency = 1
-
-local themePadding = Instance.new("UIPadding", themeTextContainer)
-themePadding.PaddingLeft = UDim.new(0, 15)
-themePadding.PaddingTop = UDim.new(0, 10)
-
-local themeTitle = Instance.new("TextLabel", themeTextContainer)
-themeTitle.Size = UDim2.new(1, 0, 0, 15)
-themeTitle.Text = "Theme"
-themeTitle.Font = Enum.Font.GothamBold
-themeTitle.TextColor3 = Themes[CurrentTheme].TextColor
-themeTitle.TextSize = 13
-themeTitle.BackgroundTransparency = 1
-themeTitle.TextXAlignment = 0
-
-local themeDesc = Instance.new("TextLabel", themeTextContainer)
-themeDesc.Position = UDim2.fromOffset(0, 18)
-themeDesc.Size = UDim2.new(1, 0, 0, 12)
-themeDesc.Text = CurrentTheme == "Dark" and "🌙 Dark Mode" or "☀️ Light Mode"
-themeDesc.Font = Enum.Font.Gotham
-themeDesc.TextColor3 = Themes[CurrentTheme].TextSecondary
-themeDesc.TextSize = 9
-themeDesc.BackgroundTransparency = 1
-themeDesc.TextXAlignment = 0
-
-local themeToggle = Instance.new("TextButton", themeCard)
-themeToggle.Position = UDim2.new(1, -42, 0.5, -11)
-themeToggle.Size = UDim2.fromOffset(28, 22)
-themeToggle.BackgroundColor3 = AccentColor
-themeToggle.Text = CurrentTheme == "Dark" and "🌙" or "☀️"
-themeToggle.Font = Enum.Font.GothamBold
-themeToggle.TextSize = 12
-themeToggle.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", themeToggle).CornerRadius = UDim.new(0, 11)
-addEdgeGradient(themeToggle)
-
-themeCard.MouseButton1Click:Connect(function()
-    local newTheme = CurrentTheme == "Dark" and "Light" or "Dark"
-    ApplyTheme(newTheme)
-    themeDesc.Text = newTheme == "Dark" and "🌙 Dark Mode" or "☀️ Light Mode"
-    themeToggle.Text = newTheme == "Dark" and "🌙" or "☀️"
-    TS:Create(themeTitle, TweenInfo.new(0.3), {TextColor3 = Themes[newTheme].TextColor}):Play()
-    TS:Create(themeDesc, TweenInfo.new(0.3), {TextColor3 = Themes[newTheme].TextSecondary}):Play()
-    TS:Create(themeCard, TweenInfo.new(0.3), {BackgroundColor3 = Themes[newTheme].CardBg}):Play()
-end)
-
-ApplyTheme(CurrentTheme)
-
--- ==================== ЛОГИКА ====================
-RunService.Stepped:Connect(function()
-    if Settings.Noclip and LP.Character then
-        for _, p in pairs(LP.Character:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
-        end
-    end
-end)
-
-UIS.JumpRequest:Connect(function()
-    if Settings.InfJump and LP.Character and LP.Character:FindFirstChild("Humanoid") then
-        LP.Character.Humanoid:ChangeState(3)
-    end
-end)
-
--- ==================== СТАРТ ====================
+-- Старт
 Main.Size = UDim2.fromOffset(windowWidth, 0)
 TS:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.fromOffset(windowWidth, windowHeight)}):Play()
