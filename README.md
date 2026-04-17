@@ -50,6 +50,64 @@ Shadow.ImageColor3 = Color3.new(0, 0, 0)
 Shadow.ImageTransparency = 0.6
 Shadow.ZIndex = 9
 
+-- ==================== АНИМИРОВАННЫЙ ФОН МЕНЮ (ТУМАННОСТЬ) ====================
+local FogBackground = Instance.new("Frame", Main)
+FogBackground.Size = UDim2.new(1, 0, 1, 0)
+FogBackground.BackgroundTransparency = 1
+FogBackground.ZIndex = 1
+FogBackground.ClipsDescendants = true
+Instance.new("UICorner", FogBackground).CornerRadius = UDim.new(0, 14)
+
+-- Частицы тумана
+local FogParticles = {}
+local ParticleCount = 8
+
+for i = 1, ParticleCount do
+    local particle = Instance.new("Frame", FogBackground)
+    particle.Size = UDim2.fromOffset(120, 120)
+    particle.BackgroundTransparency = 0.7
+    particle.BackgroundColor3 = AccentColor
+    particle.BorderSizePixel = 0
+    particle.ZIndex = 1
+    Instance.new("UICorner", particle).CornerRadius = UDim.new(1, 0)
+    
+    -- Размытие для эффекта тумана
+    local gradient = Instance.new("UIGradient", particle)
+    gradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.8),
+        NumberSequenceKeypoint.new(0.5, 0.4),
+        NumberSequenceKeypoint.new(1, 0.8)
+    })
+    
+    FogParticles[i] = {
+        Obj = particle,
+        X = math.random(0, 100) / 100,
+        Y = math.random(0, 100) / 100,
+        SpeedX = math.random(20, 40) / 1000,
+        SpeedY = math.random(10, 30) / 1000,
+        Size = math.random(80, 150)
+    }
+    particle.Size = UDim2.fromOffset(FogParticles[i].Size, FogParticles[i].Size)
+end
+
+-- Анимация тумана
+RunService.RenderStepped:Connect(function()
+    for _, data in pairs(FogParticles) do
+        local obj = data.Obj
+        
+        -- Двигаем
+        data.X = (data.X + data.SpeedX) % 1.2 - 0.1
+        data.Y = (data.Y + data.SpeedY) % 1.2 - 0.1
+        
+        -- Плавно меняем прозрачность
+        local time = tick()
+        local pulse = 0.6 + math.sin(time * 0.5) * 0.2
+        
+        obj.Position = UDim2.fromScale(data.X, data.Y)
+        obj.BackgroundTransparency = pulse
+    end
+end)
+
 -- ==================== ХЕДЕР ====================
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 40)
