@@ -1,18 +1,13 @@
---[[
-    Hasession Hub v1.0 — HButton Fixed
-    - HButton не застревает
-    - Плавное закрытие/открытие
-    - Блюр плавный
-    - Эмодзи только в сайдбаре и Basic
-]]
+-- Hasession v1.1 — Smooth H Animation + ZIndex Fixes + Full Logic
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 
--- Чистка
+-- Чистка старого GUI
 local old = LP.PlayerGui:FindFirstChild("HasessionGui")
 if old then old:Destroy() end
 
@@ -31,25 +26,25 @@ function Framework:Create(className, properties)
     local element = Instance.new(className)
     local parent = properties.Parent
     properties.Parent = nil
-    
+
     for prop, value in pairs(properties) do
         if prop ~= "Children" and prop ~= "CornerRadius" and prop ~= "Stroke" then
             element[prop] = value
         end
     end
-    
+
     if className == "TextButton" or className == "TextBox" then
         if properties.BackgroundTransparency == nil or properties.BackgroundTransparency < 1 then
             element.BackgroundTransparency = 0
         end
     end
-    
+
     if properties.CornerRadius then
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, properties.CornerRadius)
         corner.Parent = element
     end
-    
+
     if properties.Stroke then
         local stroke = Instance.new("UIStroke")
         stroke.Color = properties.Stroke.Color or Framework.Accent
@@ -57,23 +52,30 @@ function Framework:Create(className, properties)
         stroke.Transparency = properties.Stroke.Transparency or 0
         stroke.Parent = element
     end
-    
+
     if properties.Children then
         for _, childData in ipairs(properties.Children) do
             local child = self:Create(childData[1], childData[2])
             child.Parent = element
         end
     end
-    
+
     if parent then
         element.Parent = parent
     end
-    
+
     return element
 end
 
 -- ==================== НАСТРОЙКИ ====================
-local Settings = { Fly = false, Noclip = false, InfJump = false }
+local Settings = {
+    Fly = false,
+    Noclip = false,
+    InfJump = false,
+    AntiAFK = false,
+    WalkSpeed = 16,
+    JumpPower = 50
+}
 local blur = Instance.new("BlurEffect", game:GetService("Lighting"))
 blur.Size = 8
 blur.Enabled = true
@@ -82,18 +84,18 @@ blur.Enabled = true
 local viewport = workspace.CurrentCamera.ViewportSize
 local scaleX = math.clamp(viewport.X / 1920, 0.8, 1.2)
 local scaleY = math.clamp(viewport.Y / 1080, 0.8, 1.2)
-local windowWidth = math.clamp(560 * scaleX, 350, 650)
-local windowHeight = math.clamp(380 * scaleY, 260, 480)
+local W = math.clamp(560 * scaleX, 350, 650)
+local H = math.clamp(380 * scaleY, 260, 480)
 
 -- ==================== ГЛАВНОЕ ОКНО ====================
 local Main = Framework:Create("Frame", {
     BackgroundColor3 = Color3.fromRGB(25, 30, 40),
     BackgroundTransparency = 0.3,
-    Size = UDim2.fromOffset(windowWidth, windowHeight),
+    Size = UDim2.fromOffset(W, H),
     Position = UDim2.fromScale(0.5, 0.5),
     AnchorPoint = Vector2.new(0.5, 0.5),
     ClipsDescendants = true,
-    ZIndex = 10,
+    ZIndex = 1,
     CornerRadius = 14,
     Stroke = { Color = Color3.fromRGB(60, 70, 90), Thickness = 1, Transparency = 0.5 },
     Parent = Gui
@@ -109,7 +111,7 @@ local Header = Framework:Create("TextButton", {
     BackgroundTransparency = 1,
     Text = "",
     AutoButtonColor = false,
-    ZIndex = 5,
+    ZIndex = 10,
     Parent = Main
 })
 
@@ -119,7 +121,7 @@ local Avatar = Framework:Create("ImageLabel", {
     BackgroundColor3 = Color3.fromRGB(35, 40, 50),
     CornerRadius = 19,
     Stroke = { Color = Framework.Accent, Thickness = 1.5 },
-    ZIndex = 15,
+    ZIndex = 11,
     Parent = Header
 })
 
@@ -127,12 +129,9 @@ task.spawn(function()
     local success, image = pcall(function()
         return Players:GetUserThumbnailAsync(LP.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
     end)
-    if success then
-        Avatar.Image = image
-    end
+    if success then Avatar.Image = image end
 end)
 
--- DisplayName
 Framework:Create("TextLabel", {
     Position = UDim2.fromOffset(58, 8),
     Size = UDim2.new(0, 140, 0, 20),
@@ -142,11 +141,10 @@ Framework:Create("TextLabel", {
     TextSize = 14,
     BackgroundTransparency = 1,
     TextXAlignment = 0,
-    ZIndex = 15,
+    ZIndex = 11,
     Parent = Header
 })
 
--- Username
 Framework:Create("TextLabel", {
     Position = UDim2.fromOffset(58, 28),
     Size = UDim2.new(0, 140, 0, 16),
@@ -156,17 +154,16 @@ Framework:Create("TextLabel", {
     TextSize = 11,
     BackgroundTransparency = 1,
     TextXAlignment = 0,
-    ZIndex = 15,
+    ZIndex = 11,
     Parent = Header
 })
 
--- План Basic
 local PlanBadge = Framework:Create("Frame", {
     Position = UDim2.new(0, 58 + 38 + 8, 0, 12),
     Size = UDim2.fromOffset(60, 20),
     BackgroundColor3 = Framework.Accent,
     CornerRadius = 10,
-    ZIndex = 15,
+    ZIndex = 11,
     Parent = Header
 })
 
@@ -177,23 +174,21 @@ PlanText.Font = Enum.Font.GothamBold
 PlanText.TextColor3 = Color3.new(0, 0, 0)
 PlanText.TextSize = 10
 PlanText.BackgroundTransparency = 1
-PlanText.ZIndex = 16
+PlanText.ZIndex = 12
 PlanText.Parent = PlanBadge
 
--- Версия
 Framework:Create("TextLabel", {
     Position = UDim2.new(0, 58 + 38 + 8 + 60 + 5, 0, 12),
     Size = UDim2.fromOffset(50, 20),
-    Text = "v1.0",
+    Text = "v1.1",
     Font = Enum.Font.GothamMedium,
     TextColor3 = Framework.Accent,
     TextSize = 11,
     BackgroundTransparency = 1,
-    ZIndex = 15,
+    ZIndex = 11,
     Parent = Header
 })
 
--- Кнопка закрытия
 local CloseBtn = Framework:Create("TextButton", {
     Position = UDim2.new(1, -30, 0, 12),
     Size = UDim2.fromOffset(22, 22),
@@ -202,10 +197,11 @@ local CloseBtn = Framework:Create("TextButton", {
     Font = Enum.Font.GothamBold,
     TextColor3 = Color3.new(1, 1, 1),
     Active = true,
-    ZIndex = 25,
+    ZIndex = 15,
     CornerRadius = 11,
     Parent = Header
 })
+CloseBtn.MouseButton1Click:Connect(function() Gui:Destroy() blur:Destroy() end)
 
 -- ==================== КНОПКА H ====================
 local HButton = Framework:Create("TextButton", {
@@ -220,137 +216,76 @@ local HButton = Framework:Create("TextButton", {
     Active = true,
     ZIndex = 200,
     CornerRadius = 25,
-    Stroke = { 
-        Color = Color3.fromRGB(40, 40, 40),
-        Thickness = 2, 
-        Transparency = 0.3
-    },
+    Stroke = { Color = Color3.fromRGB(40, 40, 40), Thickness = 2, Transparency = 0.3 },
     Parent = Gui
 })
 
 -- ==================== DRAG ====================
-local dragging = false
-local dragStartPos = nil
-local startPos = nil
-local targetPosition = Main.Position
-
+local dragging, dragStartPos, startPos = false, nil, nil
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStartPos = input.Position
         startPos = Main.Position
-        targetPosition = Main.Position
     end
 end)
-
 UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStartPos
-        local newPos = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-        targetPosition = newPos
-        Main.Position = Main.Position:Lerp(targetPosition, 0.25)
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
 UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
 end)
 
--- ==================== ЛОГИКА H (БЕЗ ЗАСТРЕВАНИЙ) ====================
+-- ==================== ЛОГИКА H (НОВАЯ АНИМАЦИЯ) ====================
 local isHidden = false
-local hideTween = nil
-local showTween = nil
-local hTween = nil
+local function toggleMenu()
+    isHidden = not isHidden
 
-local function hideMenu()
-    if isHidden then return end
-    isHidden = true
-    
-    -- Останавливаем все текущие анимации
-    if hideTween then hideTween:Cancel() end
-    if showTween then showTween:Cancel() end
-    if hTween then hTween:Cancel() end
-    
-    -- Крутим H
-    HButton.Rotation = 0
-    hTween = TS:Create(HButton, TweenInfo.new(0.6, Enum.EasingStyle.Back), { Rotation = 360 })
-    hTween:Play()
-    
-    -- Плавно выключаем блюр
-    TS:Create(blur, TweenInfo.new(0.4), { Size = 0 }):Play()
-    
-    -- Анимация закрытия
-    hideTween = TS:Create(Main, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In), { 
-        Size = UDim2.fromOffset(windowWidth, 0)
-    })
-    hideTween.Completed:Connect(function()
-        Main.Visible = false
-        blur.Enabled = false
-        hideTween = nil
-    end)
-    hideTween:Play()
-end
-
-local function showMenu()
-    if not isHidden then return end
-    isHidden = false
-    
-    -- Останавливаем все текущие анимации
-    if hideTween then hideTween:Cancel() end
-    if showTween then showTween:Cancel() end
-    if hTween then hTween:Cancel() end
-    
-    Main.Visible = true
-    Main.Size = UDim2.fromOffset(windowWidth, 0)
-    blur.Enabled = true
-    blur.Size = 0
-    
-    -- Крутим H обратно
-    hTween = TS:Create(HButton, TweenInfo.new(0.6, Enum.EasingStyle.Back), { Rotation = 0 })
-    hTween:Play()
-    
-    -- Плавно включаем блюр
-    TS:Create(blur, TweenInfo.new(0.4), { Size = 8 }):Play()
-    
-    -- Анимация открытия
-    showTween = TS:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { 
-        Size = UDim2.fromOffset(windowWidth, windowHeight)
-    })
-    showTween.Completed:Connect(function()
-        showTween = nil
-    end)
-    showTween:Play()
-end
-
-HButton.MouseButton1Click:Connect(function()
     if isHidden then
-        showMenu()
+        -- Закрытие
+        blur.Enabled = false
+        local closeTween = TS:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(W, 0),
+            BackgroundTransparency = 1
+        })
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            if isHidden then Main.Visible = false end
+        end)
+        TS:Create(HButton, TweenInfo.new(0.4), { Rotation = 180 }):Play()
     else
-        hideMenu()
+        -- Открытие
+        Main.Visible = true
+        blur.Enabled = true
+        TS:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(W, H),
+            BackgroundTransparency = 0.3
+        }):Play()
+        TS:Create(HButton, TweenInfo.new(0.5), { Rotation = 0 }):Play()
     end
-end)
+end
+HButton.MouseButton1Click:Connect(toggleMenu)
 
--- ==================== САЙДБАР ====================
+-- ==================== САЙДБАР И КОНТЕНТ ====================
 local sidebarWidth = Framework.IsMobile and 95 or 130
 local Sidebar = Framework:Create("Frame", {
     Position = UDim2.fromOffset(10, 62),
     Size = UDim2.new(0, sidebarWidth, 1, -72),
     BackgroundTransparency = 1,
+    ZIndex = 2,
     Parent = Main,
     Children = {{"UIListLayout", { Padding = UDim.new(0, 8) }}}
 })
-
 local Content = Framework:Create("ScrollingFrame", {
     Position = UDim2.fromOffset(sidebarWidth + 20, 62),
     Size = UDim2.new(1, -sidebarWidth - 35, 1, -72),
     BackgroundTransparency = 1,
     ScrollBarThickness = 0,
     AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    ZIndex = 2,
     Parent = Main,
     Children = {
         {"UIListLayout", { Padding = UDim.new(0, 8) }},
@@ -361,23 +296,15 @@ local Content = Framework:Create("ScrollingFrame", {
 -- ==================== ВКЛАДКИ ====================
 local Tabs = {}
 local CurrentTab = nil
-
 local function switchTab(tabFrame, btn)
     if CurrentTab == tabFrame then return end
     if CurrentTab then CurrentTab.Visible = false end
     tabFrame.Visible = true
     CurrentTab = tabFrame
-    
     for _, t in pairs(Tabs) do
-        TS:Create(t.B, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(60, 70, 90),
-            TextColor3 = Color3.new(1, 1, 1)
-        }):Play()
+        TS:Create(t.B, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(60, 70, 90), TextColor3 = Color3.new(1, 1, 1) }):Play()
     end
-    TS:Create(btn, TweenInfo.new(0.2), {
-        BackgroundColor3 = Framework.Accent,
-        TextColor3 = Color3.new(0, 0, 0)
-    }):Play()
+    TS:Create(btn, TweenInfo.new(0.2), { BackgroundColor3 = Framework.Accent, TextColor3 = Color3.new(0, 0, 0) }):Play()
 end
 
 local function createTab(name, icon, active)
@@ -386,57 +313,53 @@ local function createTab(name, icon, active)
         BackgroundTransparency = 1,
         Visible = false,
         AutomaticSize = Enum.AutomaticSize.Y,
+        ZIndex = 3,
         Parent = Content,
         Children = {{"UIListLayout", { Padding = UDim.new(0, 8) }}}
     })
-    
     local btn = Framework:Create("TextButton", {
         Size = UDim2.new(1, 0, 0, 36),
         BackgroundColor3 = Color3.fromRGB(60, 70, 90),
-        Text = icon .. name,
+        Text = icon .. " " .. name,
         Font = Enum.Font.GothamMedium,
         TextColor3 = Color3.new(1, 1, 1),
         TextSize = 13,
         CornerRadius = 17,
-        ZIndex = 20,
+        ZIndex = 5,
         Parent = Sidebar
     })
-    
     btn.MouseButton1Click:Connect(function() switchTab(tabFrame, btn) end)
     Tabs[name] = {F = tabFrame, B = btn}
-    
     if active then
         tabFrame.Visible = true
         CurrentTab = tabFrame
         btn.BackgroundColor3 = Framework.Accent
         btn.TextColor3 = Color3.new(0, 0, 0)
     end
-    
     return tabFrame
 end
 
--- ==================== ТОГГЛЫ ====================
+-- ==================== КОМПОНЕНТЫ ====================
 local function addToggle(tab, title, desc, callback)
     local card = Framework:Create("TextButton", {
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 46),
         BackgroundColor3 = Color3.fromRGB(55, 65, 85),
         Text = "",
         AutoButtonColor = false,
         CornerRadius = 10,
-        ZIndex = 20,
+        ZIndex = 5,
         Parent = tab
     })
-    
     local info = Framework:Create("Frame", {
         Size = UDim2.new(1, -50, 1, 0),
         BackgroundTransparency = 1,
+        ZIndex = 6,
         Parent = card,
         Children = {
             {"UIListLayout", { VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 2) }},
             {"UIPadding", { PaddingLeft = UDim.new(0, 15) }}
         }
     })
-    
     Framework:Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 18),
         Text = title,
@@ -445,10 +368,9 @@ local function addToggle(tab, title, desc, callback)
         TextSize = 14,
         BackgroundTransparency = 1,
         TextXAlignment = 0,
-        ZIndex = 21,
+        ZIndex = 7,
         Parent = info
     })
-    
     Framework:Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 14),
         Text = desc,
@@ -457,28 +379,25 @@ local function addToggle(tab, title, desc, callback)
         TextSize = 10,
         BackgroundTransparency = 1,
         TextXAlignment = 0,
-        ZIndex = 21,
+        ZIndex = 7,
         Parent = info
     })
-    
     local sw = Framework:Create("Frame", {
         Position = UDim2.new(1, -42, 0.5, -8),
         Size = UDim2.fromOffset(28, 16),
         BackgroundColor3 = Color3.fromRGB(110, 115, 125),
         CornerRadius = 8,
-        ZIndex = 22,
+        ZIndex = 7,
         Parent = card
     })
-    
     local dot = Framework:Create("Frame", {
         Position = UDim2.fromOffset(2, 2),
         Size = UDim2.fromOffset(12, 12),
         BackgroundColor3 = Color3.new(1, 1, 1),
         CornerRadius = 6,
-        ZIndex = 23,
+        ZIndex = 8,
         Parent = sw
     })
-    
     local en = false
     card.MouseButton1Click:Connect(function()
         en = not en
@@ -488,149 +407,155 @@ local function addToggle(tab, title, desc, callback)
     end)
 end
 
--- ==================== СОЗДАНИЕ ВКЛАДОК ====================
+local function addSlider(tab, title, min, max, default, callback)
+    local card = Framework:Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundColor3 = Color3.fromRGB(55, 65, 85),
+        CornerRadius = 10,
+        ZIndex = 5,
+        Parent = tab
+    })
+    local titleLabel = Framework:Create("TextLabel", {
+        Position = UDim2.fromOffset(15, 6),
+        Size = UDim2.new(1, -30, 0, 16),
+        Text = title .. ": " .. default,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = 13,
+        BackgroundTransparency = 1,
+        TextXAlignment = 0,
+        ZIndex = 6,
+        Parent = card
+    })
+    local slider = Framework:Create("Frame", {
+        Position = UDim2.fromOffset(15, 28),
+        Size = UDim2.new(1, -30, 0, 4),
+        BackgroundColor3 = Color3.fromRGB(110, 115, 125),
+        CornerRadius = 2,
+        ZIndex = 6,
+        Parent = card
+    })
+    local fill = Framework:Create("Frame", {
+        Size = UDim2.fromScale((default - min) / (max - min), 1),
+        BackgroundColor3 = Framework.Accent,
+        CornerRadius = 2,
+        ZIndex = 7,
+        Parent = slider
+    })
+    local knob = Framework:Create("TextButton", {
+        Size = UDim2.fromOffset(12, 12),
+        Position = UDim2.fromScale((default - min) / (max - min), -0.5),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        Text = "",
+        CornerRadius = 6,
+        ZIndex = 9,
+        Parent = slider
+    })
+    local function updateSlider(input)
+        local relPos = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (max - min) * relPos)
+        fill.Size = UDim2.fromScale(relPos, 1)
+        knob.Position = UDim2.fromScale(relPos, -0.5)
+        titleLabel.Text = title .. ": " .. value
+        callback(value)
+    end
+    local sliding = false
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
+    end)
+end
+
+-- ==================== ВКЛАДКИ ====================
 local home = createTab("Home", "🏠", true)
+local utility = createTab("Utility", "🛠️", false)
 local executor = createTab("Executor", "💻", false)
 local hubs = createTab("Hubs", "📁", false)
 local settings = createTab("Settings", "⚙️", false)
 
-addToggle(home, "Fly", "Ability to fly around map", function(v) Settings.Fly = v end)
-addToggle(home, "Noclip", "Walk through objects", function(v) Settings.Noclip = v end)
-addToggle(home, "Inf Jump", "Jump in the air anytime", function(v) Settings.InfJump = v end)
+addToggle(home, "Fly", "Flying mode (WASD)", function(v) Settings.Fly = v end)
+addToggle(home, "Noclip", "Walk through walls", function(v) Settings.Noclip = v end)
+addToggle(home, "Inf Jump", "No jump cooldown", function(v) Settings.InfJump = v end)
+addSlider(home, "WalkSpeed", 16, 250, 16, function(v) Settings.WalkSpeed = v end)
+addSlider(home, "JumpPower", 50, 500, 50, function(v) Settings.JumpPower = v end)
 
--- Executor
+addToggle(utility, "Anti-AFK", "Prevent disconnect", function(v) Settings.AntiAFK = v end)
+Framework:Create("TextButton", {
+    Size = UDim2.new(1, 0, 0, 32),
+    BackgroundColor3 = Color3.fromRGB(60, 70, 90),
+    Text = "Server Hop",
+    Font = Enum.Font.GothamBold,
+    TextColor3 = Color3.new(1, 1, 1),
+    CornerRadius = 8,
+    ZIndex = 5,
+    Parent = utility
+}).MouseButton1Click:Connect(function() TeleportService:Teleport(game.PlaceId, LP) end)
+
 local ScriptBox = Framework:Create("TextBox", {
-    Size = UDim2.new(1, 0, 0, 100),
+    Size = UDim2.new(1, 0, 0, 150),
     BackgroundColor3 = Color3.fromRGB(35, 40, 50),
     TextColor3 = Color3.new(1, 1, 1),
     Font = Enum.Font.Code,
     TextSize = 12,
-    Text = "-- Paste script here",
+    Text = "-- Paste code here",
     MultiLine = true,
     ClearTextOnFocus = false,
-    Active = true,
+    ZIndex = 5,
     CornerRadius = 8,
     Parent = executor
 })
-
 Framework:Create("TextButton", {
-    Size = UDim2.new(1, 0, 0, 32),
+    Size = UDim2.new(1, 0, 0, 35),
     BackgroundColor3 = Framework.Accent,
     Text = "Execute",
     Font = Enum.Font.GothamBold,
-    TextColor3 = Color3.new(0, 0, 0),
-    TextSize = 13,
+    TextColor3 = Color3.new(0,0,0),
+    ZIndex = 6,
     CornerRadius = 8,
-    ZIndex = 20,
     Parent = executor
-}).MouseButton1Click:Connect(function()
-    pcall(function() loadstring(ScriptBox.Text)() end)
-end)
+}).MouseButton1Click:Connect(function() pcall(loadstring(ScriptBox.Text)) end)
 
--- Hubs
-Framework:Create("TextBox", {
-    Size = UDim2.new(1, 0, 0, 32),
-    BackgroundColor3 = Color3.fromRGB(35, 40, 50),
-    TextColor3 = Color3.new(1, 1, 1),
-    Font = Enum.Font.Gotham,
-    TextSize = 12,
-    PlaceholderText = "🔍 Search scripts...",
-    PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
-    Active = true,
-    CornerRadius = 8,
-    Parent = hubs
-})
-
-Framework:Create("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 60),
-    Text = "📁 Scripts coming soon...",
-    Font = Enum.Font.GothamMedium,
-    TextColor3 = Color3.fromRGB(180, 180, 180),
-    TextSize = 12,
-    BackgroundTransparency = 1,
-    ZIndex = 20,
-    Parent = hubs
-})
-
-addToggle(settings, "Dark Theme", "Switch between dark and light", function(v)
-    print("Theme:", v and "Dark" or "Light")
-end)
-
--- ==================== NOCLIP ====================
+-- ==================== ЛОГИКА ====================
 local cachedParts = {}
-local characterConnections = {}
-
-local function applyNoclip()
-    for _, part in pairs(cachedParts) do
-        part.CanCollide = false
-    end
+local function updateNoclipCache(char)
+    cachedParts = {}
+    for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then table.insert(cachedParts, p) end end
+    char.DescendantAdded:Connect(function(d) if d:IsA("BasePart") then table.insert(cachedParts, d) end end)
 end
 
-local function cacheCharacterParts(character)
-    task.wait(0.05)
-    local hrp = character:WaitForChild("HumanoidRootPart", 2)
-    if not hrp then return end
-    
-    cachedParts = {}
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            table.insert(cachedParts, part)
-        end
-    end
-    
-    if characterConnections[character] then
-        characterConnections[character]:Disconnect()
-    end
-    characterConnections[character] = character.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("BasePart") then
-            table.insert(cachedParts, descendant)
-            if Settings.Noclip and character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
-                descendant.CanCollide = false
+if LP.Character then updateNoclipCache(LP.Character) end
+LP.CharacterAdded:Connect(updateNoclipCache)
+
+RunService.RenderStepped:Connect(function()
+    local char = LP.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = Settings.WalkSpeed
+        char.Humanoid.JumpPower = Settings.JumpPower
+        if Settings.Noclip then
+            for _, part in pairs(cachedParts) do
+                if part and part.Parent then part.CanCollide = false end
             end
         end
-    end)
-    
-    if Settings.Noclip and character.Humanoid.Health > 0 then
-        applyNoclip()
-    end
-end
-
-LP.CharacterAdded:Connect(cacheCharacterParts)
-
-if LP.Character then
-    task.spawn(function() cacheCharacterParts(LP.Character) end)
-end
-
-local noclipConnection = RunService.Stepped:Connect(function()
-    if Settings.Noclip and LP.Character and LP.Character:FindFirstChild("Humanoid") and LP.Character.Humanoid.Health > 0 then
-        applyNoclip()
     end
 end)
 
--- ==================== INF JUMP ====================
-local jumpConnection = UIS.JumpRequest:Connect(function()
+UIS.JumpRequest:Connect(function()
     if Settings.InfJump and LP.Character and LP.Character:FindFirstChild("Humanoid") then
-        LP.Character.Humanoid:ChangeState(3)
+        LP.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- ==================== CLEANUP ====================
-CloseBtn.MouseButton1Click:Connect(function()
-    noclipConnection:Disconnect()
-    jumpConnection:Disconnect()
-    for _, conn in pairs(characterConnections) do
-        conn:Disconnect()
+local VU = game:GetService("VirtualUser")
+LP.Idled:Connect(function()
+    if Settings.AntiAFK then
+        VU:CaptureController()
+        VU:ClickButton2(Vector2.new())
     end
-    blur:Destroy()
-    HButton:Destroy()
-    Gui:Destroy()
 end)
 
--- ==================== АНИМАЦИЯ ПОЯВЛЕНИЯ ПРИ ЗАПУСКЕ ====================
-Main.Visible = true
-Main.Size = UDim2.fromOffset(windowWidth, 0)
-Main.BackgroundTransparency = 1
-TS:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back), { 
-    Size = UDim2.fromOffset(windowWidth, windowHeight),
-    BackgroundTransparency = 0.3
-}):Play()
+print("✅ Hasession v1.1 — Smooth Animation Ready!")
